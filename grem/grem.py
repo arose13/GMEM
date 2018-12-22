@@ -1,4 +1,3 @@
-import logging
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
@@ -8,11 +7,8 @@ from sklearn.model_selection import cross_val_predict
 from sklearn.metrics import r2_score
 
 
-logger = logging.getLogger(__name__)
-
-
 class GeneralRandomEffectsModel(BaseEstimator):
-    def __init__(self, estimator=None, min_iterations=10, gll_early_stop_threshold=1e-4, max_iterations=20,
+    def __init__(self, estimator=None, min_iterations=10, gll_early_stop_threshold=1e-3, max_iterations=20,
                  cv=3, n_jobs=1, verbose=False):
         self.verbose = verbose
         self.min_iterations = min_iterations
@@ -142,9 +138,10 @@ class GeneralRandomEffectsModel(BaseEstimator):
 
         while iteration < self.max_iterations:
             iteration += 1
-            logger.debug('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-            logger.debug('Iteration: {}'.format(iteration))
-            logger.debug('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+            if self.verbose > 1:
+                print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+                print('Iteration: {}'.format(iteration))
+                print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
 
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ E-step ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             # fill up y_star for all groups
@@ -154,7 +151,8 @@ class GeneralRandomEffectsModel(BaseEstimator):
                 y_i = y_by_group[group_id]
                 Z_i = Z_by_group[group_id]
                 b_i = b_df.loc[group_id]  # used to be ix
-                logger.debug('E-step, group {}, b = {}'.format(group_id, b_i))
+                if self.verbose > 1:
+                    print('E-step, group {}, b = {}'.format(group_id, b_i))
                 indices_i = indices_by_group[group_id]
 
                 # Compute y_star for this group and put back in right place
@@ -163,7 +161,7 @@ class GeneralRandomEffectsModel(BaseEstimator):
 
             # check that still one dimensional
             # TODO: Other checks we want to do?
-            assert len(y_star.shape) == 1
+            assert y_star.ndim == 1
 
             # Do the random forest regression with all the fixed effects features
             estimator = self.input_estimator
@@ -171,9 +169,7 @@ class GeneralRandomEffectsModel(BaseEstimator):
             # estimated out of sample performance
             f = cross_val_predict(estimator, X, y_star, cv=self.cv, n_jobs=self.n_jobs)
             estimator.fit(X, y_star)
-            # TODO 12/22/2018 Definitely early terminate on this metric
             oos_r2 = r2_score(y_star, f)
-
 
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ M-step ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             sigma_sq_sum = 0
@@ -195,24 +191,28 @@ class GeneralRandomEffectsModel(BaseEstimator):
 
                 # Compute b_i
                 V_inv_i = np.linalg.pinv(V_i)
-                logger.debug('M-step, pre-update, group {}, b = {}'.format(group_id, b_df.loc[group_id]))
+                if self.verbose > 1:
+                    print('M-step, pre-update, group {}, b = {}'.format(group_id, b_df.loc[group_id]))
                 b_i = D.dot(Z_i.T).dot(V_inv_i).dot(y_i - f_i)
-                logger.debug('M-step, post-update, group {}, b = {}'.format(group_id, b_i))
+                if self.verbose > 1:
+                    print('M-step, post-update, group {}, b = {}'.format(group_id, b_i))
 
                 # Compute the total error for this group
                 eps_i = y_i - f_i - Z_i.dot(b_i)
 
-                logger.debug('------------------------------------------')
-                logger.debug('M-step, group {}'.format(group_id))
-                logger.debug('error squared for group = {}'.format(eps_i.T.dot(eps_i)))
+                if self.verbose > 1:
+                    print('------------------------------------------')
+                    print('M-step, group {}'.format(group_id))
+                    print('error squared for group = {}'.format(eps_i.T.dot(eps_i)))
 
                 # Store b for group both in numpy array and in dataframe
                 # Note this HAS to be assigned with loc, otw whole df get erroneously assigned and things go to hell
                 b_df.loc[group_id, :] = b_i
-                logger.debug(
-                    'M-step, post-update, recalled from db, group {}, '
-                    'b = {}'.format(group_id, b_df.loc[group_id])
-                )
+                if self.verbose > 1:
+                    print(
+                        'M-step, post-update, recalled from db, group {}, '
+                        'b = {}'.format(group_id, b_df.loc[group_id])
+                    )
 
                 # Update the sums for sigma_sq and D. We will update after the entire loop over groups
                 sigma_sq_sum += eps_i.T.dot(eps_i) + sigma_sq * (n_i - sigma_sq * np.trace(V_inv_i))
@@ -224,9 +224,10 @@ class GeneralRandomEffectsModel(BaseEstimator):
             sigma_sq = (1.0 / n_obs) * sigma_sq_sum
             D = (1.0 / n_groups) * D_sum
 
-            logger.debug('b = {}'.format(b_df))
-            logger.debug('sigma_sq = {}'.format(sigma_sq))
-            logger.debug('D = {}'.format(D))
+            if self.verbose > 1:
+                print('b = {}'.format(b_df))
+                print('sigma_sq = {}'.format(sigma_sq))
+                print('D = {}'.format(D))
 
             # Store off history so that we can see the evolution of the EM algorithm
             self.b_history.append(b_df.copy())
@@ -261,9 +262,19 @@ class GeneralRandomEffectsModel(BaseEstimator):
                 )
 
             if self.verbose:
-                print('R2: {} GLL: {} at iteration {}'.format(oos_r2, gll, iteration))
+                print('R^2: {:.3f} GLL: {:.3f} at iteration {}'.format(oos_r2, gll, iteration))
             self.gll_history.append(gll)
             self.r2_history.append(oos_r2)
+
+            # Early termination logic
+            # TODO 12/22/2018 NOTE this logic assumes GLL monotonically decreases which it does not
+            if len(self.gll_history) < 2:
+                continue
+
+            if abs(self.gll_history[-2] - self.gll_history[-1]) < self.gll_early_stop_threshold:
+                if self.verbose:
+                    print('Early Termination')
+                break
 
         # Store off most recent model and b as the model to be used in the prediction stage
         self.group_counts = group_counts
