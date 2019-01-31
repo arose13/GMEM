@@ -15,7 +15,7 @@ Installation / Usage
 
 To install use pip:
 
-    $ pip install grem
+    $ pip install gmem
 
 
 Or clone the repo:

@@ -7,7 +7,7 @@ from sklearn.model_selection import cross_val_predict
 from sklearn.metrics import r2_score
 
 
-class GeneralRandomEffectsModel(BaseEstimator):
+class GeneralMixedEffectsModel(BaseEstimator):
     def __init__(self, estimator=None, min_iterations=10, gll_early_stop_threshold=1e-3, max_iterations=20,
                  cv=3, n_jobs=1, verbose=False):
         self.verbose = verbose
