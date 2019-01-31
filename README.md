@@ -1,4 +1,4 @@
-GREM
+GMEM
 ===============================
 
 Author: Stephen Anthony Rose
