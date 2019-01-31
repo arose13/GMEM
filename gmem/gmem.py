@@ -34,7 +34,7 @@ class GeneralMixedEffectsModel(BaseEstimator):
 
     def predict(self, X, Z, groups):
         """
-        Predict using trained General Random Effects Model.
+        Predict using trained General Mixed Effects Model.
         For known groups the trained random effect correction is applied.
         For unknown groups the pure fixed effect (Estimator) estimate is used.
 
@@ -49,7 +49,6 @@ class GeneralMixedEffectsModel(BaseEstimator):
         if not isinstance(Z, np.ndarray):
             Z = np.array(Z)  # cast Z to numpy array (required if it's a dataframe matmul wouldn't work)
 
-        # Apply random forest to all
         y_pred = self.estimator_.predict(X)
 
         # Apply random effects correction to all known groups. Note that then, by default, the new groups get no
@@ -70,7 +69,7 @@ class GeneralMixedEffectsModel(BaseEstimator):
 
     def fit(self, X, Z, groups, y):
         """
-        Fit GREM using EM algorithm.
+        Fit GMEM using EM algorithm.
 
         :param X: fixed effect covariates
         :param Z: random effect covariates
