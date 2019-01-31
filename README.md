@@ -8,7 +8,7 @@ Overview
 --------
 
 Random Effects models for _any ML model_.
-This is a generalisation of a Random Effects Random Forest model
+This is a generalisation of a Mixed Effects Random Forest model
 
 Installation / Usage
 --------------------
@@ -20,7 +20,7 @@ To install use pip:
 
 Or clone the repo:
 
-    $ git clone https://github.com/arose13/grem.git
+    $ git clone https://github.com/arose13/gmem.git
     $ python setup.py install
     
 Contributing
