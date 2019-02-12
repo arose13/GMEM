@@ -25,8 +25,8 @@ setup(
     version=__version__,
     description='Completely General Mixed Effects Models',
     long_description=long_description,
-    url='https://github.com/arose13/rosey',
-    download_url='https://github.com/arose13/rosey/tarball/' + __version__,
+    url='https://github.com/arose13/GMEM',
+    download_url='https://github.com/arose13/GMEM/tarball/' + __version__,
     license='BSD',
     classifiers=[
         'Development Status :: 3 - Alpha',
@@ -37,9 +37,9 @@ setup(
     keywords='',
     packages=find_packages(exclude=['docs', 'tests*']),
     include_package_data=True,
-    author='Stephen Anthony Rose',
+    author='Stephen Rose',
     install_requires=install_requires,
     dependency_links=dependency_links,
-    author_email='anthony@stephenro.se',
+    author_email='me@stephenro.se',
     zip_safe=False
 )
