@@ -3,7 +3,7 @@ from codecs import open
 from setuptools import setup, find_packages
 
 
-__version__ = '0.20181221.1507'
+__version__ = '0.20190316.1139'
 
 here = path.abspath(path.dirname(__file__))
 

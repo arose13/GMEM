@@ -4,6 +4,6 @@
 mv dist/*tar.gz old_dist/
 
 python setup.py sdist
-twine upload dist/*
+python3 -m twine upload dist/*
 
 echo "--- DONE ---"
